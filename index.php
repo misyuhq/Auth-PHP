@@ -1,24 +1,22 @@
 <?php
-ob_start();
 session_start();
-
-$HASHED_PASSWORD = ' ';
-
-if (!isset($_SESSION['attempts'])) $_SESSION['attempts'] = 0;
-if ($_SESSION['attempts'] >= 2) die("Trop de tentatives. Réessayez plus tard.");
+require 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $pass = $_POST['password'] ?? '';
 
-    if (password_verify($pass, $HASHED_PASSWORD)) {
-        session_regenerate_id(true);
-        $_SESSION['logged'] = true;
-        $_SESSION['attempts'] = 0;
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user'] = $user['username'];
         header("Location: dashboard.php");
         exit;
     } else {
-        $_SESSION['attempts']++;
-        $error = "Mot de passe incorrect.";
+        $error = "Identifiants incorrects.";
     }
 }
 ?>
@@ -57,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         letter-spacing: 1px;
     }
 
-    input[type="password"] {
+    input[type="text"], input[type="password"] {
         width: 100%;
         padding: 12px;
         margin-bottom: 20px;
@@ -93,8 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Connexion</h2>
         <?php if(!empty($error)) echo "<div class='error'>$error</div>"; ?>
         <form method="POST">
+            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
             <input type="password" name="password" placeholder="Mot de passe" required>
-            <button type="submit">Entrer</button>
+            <button type="submit">Se connecter</button>
         </form>
     </div>
 </body>
